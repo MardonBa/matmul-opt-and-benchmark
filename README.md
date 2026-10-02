@@ -73,6 +73,20 @@ Write the same benchmark run to CSV while retaining the console table:
 `--csv=PATH` writes Google Benchmark's complete CSV report to `PATH`; use a
 different filename for each comparison run so results are not overwritten.
 
+## Visualizing growth
+
+Generate an SVG report with CPU-time growth, throughput by matrix size, and
+speedup relative to `naive`. The plotter uses only Python's standard library.
+
+```sh
+python3 plot_benchmarks.py benchmark-results.csv --output benchmark-growth.svg
+```
+
+The CPU-time chart uses log axes and adds a fitted `N^p` exponent to each
+implementation's legend. For ordinary matrix multiplication, `p` should be
+near 3; a materially smaller value can indicate that the implementation is not
+doing equivalent work.
+
 `flop/s` is calculated as `2 * N^3`; effective bandwidth is the logical
 traffic for reading both inputs and writing the output (`3 * N^2 * sizeof(double)`),
 so it is a useful comparison metric rather than a measurement of DRAM traffic.
