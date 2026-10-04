@@ -1,6 +1,6 @@
 #include <iostream>
 #include <array>
-#include "naive_matmul.h"
+#include "implementations/naive/naive_matmul.h"
 
 void fill_matrix(double **array, size_t rows, size_t cols, std::string m_name) {
     // Don't need to return anything here because we're passing through pointers, so the matrix is updated inplace

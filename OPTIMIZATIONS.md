@@ -24,3 +24,10 @@ loop ordering lets us walk through pages of memory by moving just 1 address at a
 results matrix. This is as efficient as it gets!
 
 There are lots of better ways that we can utilize the cache and take advantage of parallelism, which we'll explore in the upcoming implementations.
+
+## Cache-aware blocking/tiling
+
+I didn't know what this was at first! Now I do though. The core idea is that the processor only has so much space on the cache. To make operations quicker and more efficient, we
+can break them into blocks that fit on the CPUs L1 or L2 cache, that way we don't have to make long fetches across the computer, everything can stay close to each other.
+
+Being cache-aware means that we measure the cache beforehand so we can optimize for the specific cache of the CPU.

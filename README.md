@@ -150,8 +150,9 @@ validate changes after rerunning performance tests.
 ## Adding an implementation
 
 Keep the function signature used by `naive_multiply`, add the implementation's
-source file to `matmul_bench` in `CMakeLists.txt`, and add one entry to
-`matmul_implementations.cpp`:
+files under its own `implementations/<name>/` directory, add its `.cpp` file to
+`matmul_bench` in `CMakeLists.txt`, and add one entry to
+`app/matmul_implementations.cpp`:
 
 ```cpp
 {"blocked", blocked_multiply},
@@ -160,3 +161,17 @@ source file to `matmul_bench` in `CMakeLists.txt`, and add one entry to
 It will then appear in `--list-implementations`, run by default, and can be
 selected with `--implementations=blocked` or compared directly with
 `--implementations=naive,blocked`.
+
+## Source layout
+
+- `app/` contains the benchmark executable and implementation registry.
+- `implementations/<name>/` contains one matrix multiplication implementation
+  and its header. Current folders are `naive`, `ikj`, `jik`, `jki`, `kij`, and
+  `kji`.
+- `tests/` verifies every implementation against a rectangular reference case.
+
+Run the correctness test with:
+
+```sh
+ctest --test-dir build --output-on-failure
+```

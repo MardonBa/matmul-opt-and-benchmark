@@ -1,6 +1,10 @@
 #include "matmul_implementations.h"
-#include "naive_matmul.h"
-#include "loop_order_matmul.h"
+#include "implementations/ikj/ikj_matmul.h"
+#include "implementations/jik/jik_matmul.h"
+#include "implementations/jki/jki_matmul.h"
+#include "implementations/kij/kij_matmul.h"
+#include "implementations/kji/kji_matmul.h"
+#include "implementations/naive/naive_matmul.h"
 
 const std::vector<MatmulImplementation> &matmul_implementations() {
     static const std::vector<MatmulImplementation> implementations = {

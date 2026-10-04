@@ -16,4 +16,7 @@ and per matrix size.
 
 ## 10/4
 
-Gonna work on 
+Gonna work on cache-aware tiling next!!
+
+I've just learned about what it even is, super interesting. I think it's pretty neat to see the things I've learned in CS 2110 and in the paper
+"What every programmer should know about memory" (title paraphrased), lots of the things I didn't understand from that paper are making more sense now.
