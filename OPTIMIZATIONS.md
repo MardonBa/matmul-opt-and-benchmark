@@ -31,3 +31,28 @@ I didn't know what this was at first! Now I do though. The core idea is that the
 can break them into blocks that fit on the CPUs L1 or L2 cache, that way we don't have to make long fetches across the computer, everything can stay close to each other.
 
 Being cache-aware means that we measure the cache beforehand so we can optimize for the specific cache of the CPU.
+
+The total size of a tile can't exceed the capacity of our cache, which makes intuitive sense. 
+
+Below is the output from `sysctl -a | grep cache` (note that i'm using this command and not computing cache size or using a different command since I'm on an M3 Mac):
+
+```
+hw.perflevel0.l1icachesize: 196608
+hw.perflevel0.l1dcachesize: 131072
+hw.perflevel0.l2cachesize: 16777216
+hw.perflevel1.l1icachesize: 131072
+hw.perflevel1.l1dcachesize: 65536
+hw.perflevel1.l2cachesize: 4194304
+hw.cacheconfig: 8 1 4 0 0 0 0 0 0 0
+hw.cachesize: 3699228672 65536 4194304 0 0 0 0 0 0 0
+hw.cachelinesize: 128
+hw.l1icachesize: 131072
+hw.l1dcachesize: 65536
+hw.l2cachesize: 4194304
+```
+
+I'm opting to just get the cache sizes and hardcode the values in my function for simplicity. For the scope of this project, there's no need to compute it on the fly.
+
+From the results, we can see that I have a 128KB L1 Data Cache and a 16MB L2 Cache, and 128-byte cache line size. The code calculates block/tile size for L1 and L2 cache.
+
+You may notice that there are 2 implementations for cache-aware tiling. That's because we'll be blocking into L1 cache only, and also L1 and L2 cache. Using both caches is even more efficient, because 

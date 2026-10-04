@@ -20,3 +20,6 @@ Gonna work on cache-aware tiling next!!
 
 I've just learned about what it even is, super interesting. I think it's pretty neat to see the things I've learned in CS 2110 and in the paper
 "What every programmer should know about memory" (title paraphrased), lots of the things I didn't understand from that paper are making more sense now.
+
+I've also learned that `double**` matrices allocate memory randomly, so the cache optimizations won't do anything!! It's 2am and I'm tired so I'm going to 
+fix my implementations tomorrow (it'll take a lot of work) and then wrap up implementing this cache optimization
