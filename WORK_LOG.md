@@ -13,3 +13,7 @@ understanding how it works.
 
 I just implemented the loop-reordered matmuls, I think I'll have some python data vis to see growth rate per function
 and per matrix size.
+
+## 10/4
+
+Gonna work on 

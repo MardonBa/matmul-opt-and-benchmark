@@ -5,10 +5,14 @@ very cool project!
 ## Checklist
 
 - [x] Implement naive matmul
-- [ ] Implement time, operation, memory fetch?? benchmarking
-- [ ] Implement matmul with various loop orders
+- [x] Implement time, operation, memory fetch?? benchmarking
+- [x] Implement matmul with various loop orders
 - [ ] Writeup on the CPU operations, why loop order matters
-- [ ] next steps..
+- [ ] Cache-aware blocking/tiling
+- [ ] Compiler optimization
+- [ ] SIMD/Vectorization
+- [ ] Multithreading
+- [ ] Comparison against optimized BLAS
 
 ## Setup
 
@@ -93,14 +97,55 @@ so it is a useful comparison metric rather than a measurement of DRAM traffic.
 Allocation counters cover C++ `new`/`new[]` calls made by the multiplication
 itself.
 
-Cycles, instructions, cache-miss counters, IPC, and branch-miss rate are
-collected with Linux `perf_event_open`. They require Linux permissions to use
-performance counters (and may be restricted by `perf_event_paranoid`). On
-macOS they are listed as unavailable; the portable metrics above still work.
-Vectorization percentage is likewise listed but intentionally unavailable: it
-needs architecture- and compiler-specific instruction classification, not a
+On Linux, cycles, instructions, cache metrics, IPC, and branch metrics are
+collected with `perf_event_open`; this may require permission to use hardware
+counters (`perf_event_paranoid`). On macOS 12.4 or later, cycles, instructions,
+and IPC are collected with the OS's per-thread Recount counters:
+
+```sh
+./build/matmul_bench --metrics=cycles,instructions,ipc --benchmark_filter='.*N:512.*'
+```
+
+The macOS counter API is runtime-checked because some configurations do not
+expose instruction and cycle counts. Cache-miss and branch metrics remain
+Linux-only. Vectorization percentage is intentionally unavailable because it
+needs compiler- and architecture-specific instruction analysis, rather than a
 portable runtime counter. `--all-metrics` runs every metric supported on the
 current platform and reports the unavailable ones.
+
+## Profiling with Instruments on macOS
+
+Use the benchmark runner for repeatable timing and CSV comparisons; use
+Instruments to explain *why* one implementation is faster. Instruments adds
+profiling overhead, so do not treat its elapsed time as the benchmark result.
+
+1. Install the full Xcode app (Command Line Tools alone do not include
+   Instruments), then build a symbolized optimized binary:
+
+   ```sh
+   cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+   cmake --build build
+   ```
+
+2. Open **Instruments** from Xcode (**Xcode > Open Developer Tool >
+   Instruments**) and select the **CPU Counters** template.
+3. Choose the `matmul_bench` executable as the target. In its launch arguments,
+   use one implementation and one useful size, for example:
+
+   ```text
+   --implementations=ikj --benchmark_filter=.*N:512.* --benchmark_min_time=0.5s
+   ```
+
+4. In the CPU Counters instrument, select **CPU Bottlenecks** mode, then click
+   Record. Let the selected benchmark finish and stop the recording.
+5. In the call tree/detail view, focus on `*_multiply` and its inner loops.
+   Compare the loop-order runs separately, looking for stalls, cache-related
+   bottlenecks, branch behavior, and vectorization guidance reported by the
+   instrument.
+
+Close other CPU-heavy applications and repeat the same focused trace when
+comparing variants. Apple documents the CPU Counters workflow and uses it to
+validate changes after rerunning performance tests.
 
 ## Adding an implementation
 

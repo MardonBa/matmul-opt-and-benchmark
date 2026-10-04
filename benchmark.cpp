@@ -19,6 +19,9 @@
 #include <sys/ioctl.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#elif defined(__APPLE__)
+#include <sys/syscall.h>
+#include <unistd.h>
 #endif
 
 namespace {
@@ -35,13 +38,13 @@ constexpr MetricDefinition kMetricDefinitions[] = {
     {"allocations", Metric::kAllocations, "C++ allocations per multiplication"},
     {"bytes-allocated", Metric::kBytesAllocated, "C++ bytes allocated per multiplication"},
     {"effective-bandwidth", Metric::kEffectiveBandwidth, "logical matrix bytes processed per second"},
-    {"cycles", Metric::kCycles, "CPU cycles per multiplication (Linux perf)"},
-    {"instructions", Metric::kInstructions, "retired instructions per multiplication (Linux perf)"},
+    {"cycles", Metric::kCycles, "CPU cycles per multiplication (Linux perf or macOS Recount)"},
+    {"instructions", Metric::kInstructions, "retired instructions per multiplication (Linux perf or macOS Recount)"},
     {"cache-misses", Metric::kCacheMisses, "hardware cache misses per multiplication (Linux perf)"},
     {"l1-cache-misses", Metric::kL1CacheMisses, "L1 data-cache read misses per multiplication (Linux perf)"},
     {"llc-cache-misses", Metric::kLastLevelCacheMisses, "last-level-cache read misses per multiplication (Linux perf)"},
     {"branch-misses", Metric::kBranchMisses, "branch mispredictions per multiplication (Linux perf)"},
-    {"ipc", Metric::kInstructionsPerCycle, "instructions per cycle (Linux perf)"},
+    {"ipc", Metric::kInstructionsPerCycle, "instructions per cycle (Linux perf or macOS Recount)"},
     {"branch-miss-rate", Metric::kBranchMissRate, "branch mispredictions divided by branch instructions (Linux perf)"},
     {"vectorization", Metric::kVectorization, "not available: no portable SIMD-instruction percentage exists"},
 };
@@ -65,6 +68,9 @@ bool metric_is_available(Metric metric) {
     if (metric == Metric::kVectorization) return false;
 #if defined(__linux__)
     return true;
+#elif defined(__APPLE__)
+    return metric == Metric::kCycles || metric == Metric::kInstructions ||
+           metric == Metric::kInstructionsPerCycle || !is_hardware_metric(metric);
 #else
     return !is_hardware_metric(metric);
 #endif
@@ -164,11 +170,14 @@ class AllocationScope {
     AllocationStats *previous_;
 };
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
 struct PerfReadings {
     std::uint64_t cycles = 0, instructions = 0, cache_misses = 0, l1_cache_misses = 0,
                   llc_cache_misses = 0, branch_misses = 0, branch_instructions = 0;
 };
+#endif
+
+#if defined(__linux__)
 class PerfCounters {
   public:
     explicit PerfCounters(const std::set<Metric> &metrics) : metrics_(metrics) {}
@@ -217,8 +226,40 @@ class PerfCounters {
 };
 #endif
 
+#if defined(__APPLE__)
+// `thread_selfcounts` is a macOS 12.4+ SPI.  It is intentionally invoked via
+// syscall because its private SDK header is not installed with Xcode's public
+// headers. THSC_CPI (kind 1) returns these two cumulative thread counters.
+struct DarwinThreadCounts {
+    std::uint64_t instructions;
+    std::uint64_t cycles;
+};
+
+bool read_darwin_thread_counts(PerfReadings *readings, std::string *error) {
+    constexpr std::uint32_t kThreadSelfCountsCpi = 1;
+    DarwinThreadCounts counters{};
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    const long result = syscall(SYS_thread_selfcounts, kThreadSelfCountsCpi, &counters, sizeof(counters));
+#pragma clang diagnostic pop
+    if (result != 0) {
+        *error = "macOS thread_selfcounts failed: " + std::string(std::strerror(errno)) +
+                 ". Cycles and instructions require macOS 12.4+ and supported hardware.";
+        return false;
+    }
+    readings->cycles = counters.cycles;
+    readings->instructions = counters.instructions;
+    return true;
+}
+
+bool wants_darwin_recount_metrics() {
+    return config.metrics.count(Metric::kCycles) || config.metrics.count(Metric::kInstructions) ||
+           config.metrics.count(Metric::kInstructionsPerCycle);
+}
+#endif
+
 void add_metric_counters(benchmark::State &state, int n, const AllocationStats &allocations
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
                          , const PerfReadings &perf
 #endif
 ) {
@@ -229,16 +270,18 @@ void add_metric_counters(benchmark::State &state, int n, const AllocationStats &
     if (config.metrics.count(Metric::kEffectiveBandwidth)) state.counters["effective_bytes/s"] = benchmark::Counter(logical_bytes, benchmark::Counter::kIsIterationInvariantRate);
     if (config.metrics.count(Metric::kAllocations)) state.counters["allocations"] = allocations.count / iterations;
     if (config.metrics.count(Metric::kBytesAllocated)) state.counters["bytes_allocated"] = allocations.bytes / iterations;
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
     const auto per_iteration = [iterations](std::uint64_t value) { return value / iterations; };
     if (config.metrics.count(Metric::kCycles)) state.counters["cycles"] = per_iteration(perf.cycles);
     if (config.metrics.count(Metric::kInstructions)) state.counters["instructions"] = per_iteration(perf.instructions);
+    if (config.metrics.count(Metric::kInstructionsPerCycle)) state.counters["ipc"] = perf.cycles == 0 ? 0.0 : static_cast<double>(perf.instructions) / perf.cycles;
+#if defined(__linux__)
     if (config.metrics.count(Metric::kCacheMisses)) state.counters["cache_misses"] = per_iteration(perf.cache_misses);
     if (config.metrics.count(Metric::kL1CacheMisses)) state.counters["l1_cache_misses"] = per_iteration(perf.l1_cache_misses);
     if (config.metrics.count(Metric::kLastLevelCacheMisses)) state.counters["llc_cache_misses"] = per_iteration(perf.llc_cache_misses);
     if (config.metrics.count(Metric::kBranchMisses)) state.counters["branch_misses"] = per_iteration(perf.branch_misses);
-    if (config.metrics.count(Metric::kInstructionsPerCycle)) state.counters["ipc"] = perf.cycles == 0 ? 0.0 : static_cast<double>(perf.instructions) / perf.cycles;
     if (config.metrics.count(Metric::kBranchMissRate)) state.counters["branch_miss_rate"] = perf.branch_instructions == 0 ? 0.0 : static_cast<double>(perf.branch_misses) / perf.branch_instructions;
+#endif
 #endif
 }
 
@@ -250,6 +293,13 @@ void run_benchmark(benchmark::State &state, MatmulImplementation implementation)
 #if defined(__linux__)
     PerfCounters perf_counters(config.metrics); PerfReadings perf; std::string perf_error;
     if (!perf_counters.start(&perf_error)) { free_matrix(left, n); free_matrix(right, n); state.SkipWithError(perf_error.c_str()); return; }
+#elif defined(__APPLE__)
+    PerfReadings perf_start, perf;
+    std::string perf_error;
+    const bool use_darwin_recount = wants_darwin_recount_metrics();
+    if (use_darwin_recount && !read_darwin_thread_counts(&perf_start, &perf_error)) {
+        free_matrix(left, n); free_matrix(right, n); state.SkipWithError(perf_error.c_str()); return;
+    }
 #endif
     for (auto _ : state) {
         double **result;
@@ -259,10 +309,19 @@ void run_benchmark(benchmark::State &state, MatmulImplementation implementation)
     }
 #if defined(__linux__)
     perf = perf_counters.stop();
+#elif defined(__APPLE__)
+    if (use_darwin_recount) {
+        PerfReadings perf_end;
+        if (!read_darwin_thread_counts(&perf_end, &perf_error)) {
+            free_matrix(left, n); free_matrix(right, n); state.SkipWithError(perf_error.c_str()); return;
+        }
+        perf.cycles = perf_end.cycles - perf_start.cycles;
+        perf.instructions = perf_end.instructions - perf_start.instructions;
+    }
 #endif
     free_matrix(left, n); free_matrix(right, n);
     add_metric_counters(state, n, allocations
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
                         , perf
 #endif
     );
