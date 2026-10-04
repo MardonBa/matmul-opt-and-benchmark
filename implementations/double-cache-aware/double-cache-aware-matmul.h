@@ -1,6 +1,10 @@
 #ifndef DOUBLE_CACHE_AWARE_MATMUL_H
 #define DOUBLE_CACHE_AWARE_MATMUL_H
 
-double **double_cache_aware_matmul(double **m1, double **m2, int row_dim, int col_dim, int common_dim, int block_size);
+#include "implementations/matrix.h"
+
+matmul::Matrix double_cache_aware_multiply(const matmul::Matrix &m1,
+                                           const matmul::Matrix &m2, int row_dim,
+                                           int col_dim, int common_dim);
 
 #endif

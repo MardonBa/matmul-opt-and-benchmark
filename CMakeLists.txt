@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(benchmark REQUIRED)
 
 set(MATMUL_IMPLEMENTATION_SOURCES
+    implementations/cache-aware/cache-aware-matmul.cpp
+    implementations/double-cache-aware/double-cache-aware-matmul.cpp
     implementations/naive/naive_matmul.cpp
     implementations/ikj/ikj_matmul.cpp
     implementations/jik/jik_matmul.cpp

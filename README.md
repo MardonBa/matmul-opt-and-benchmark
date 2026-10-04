@@ -167,8 +167,17 @@ selected with `--implementations=blocked` or compared directly with
 - `app/` contains the benchmark executable and implementation registry.
 - `implementations/<name>/` contains one matrix multiplication implementation
   and its header. Current folders are `naive`, `ikj`, `jik`, `jki`, `kij`, and
-  `kji`.
+  `kji`, plus `cache-aware` and `double-cache-aware`.
 - `tests/` verifies every implementation against a rectangular reference case.
+
+## Matrix representation
+
+All implementations accept and return `matmul::Matrix`, an alias for a flat
+`std::vector<double>` in row-major order. For `A(rows × shared)` and
+`B(shared × columns)`, element `(row, column)` is stored at
+`row * columns + column`; the result contains exactly `rows * columns`
+elements. `implementations/matrix.h` centralizes this contract and validates
+the supplied storage dimensions.
 
 Run the correctness test with:
 

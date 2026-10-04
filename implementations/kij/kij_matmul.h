@@ -1,6 +1,9 @@
 #ifndef KIJ_MATMUL_H
 #define KIJ_MATMUL_H
 
-double **kij_multiply(double **m1, double **m2, int row_dim, int col_dim, int common_dim);
+#include "implementations/matrix.h"
+
+matmul::Matrix kij_multiply(const matmul::Matrix &m1, const matmul::Matrix &m2,
+                            int row_dim, int col_dim, int common_dim);
 
 #endif

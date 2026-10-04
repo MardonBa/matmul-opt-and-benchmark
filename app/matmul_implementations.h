@@ -3,11 +3,13 @@
 
 #include <string>
 #include <vector>
+#include "implementations/matrix.h"
 
-// All implementations use the same row-pointer matrix representation. Add a
-// new implementation here so the benchmark runner can discover it by name.
-using MatmulFunction = double **(*)(double **left, double **right, int rows,
-                                    int columns, int shared_dimension);
+// All implementations use contiguous row-major storage. Add a new
+// implementation here so the benchmark runner can discover it by name.
+using MatmulFunction = matmul::Matrix (*)(const matmul::Matrix &left,
+                                          const matmul::Matrix &right, int rows,
+                                          int columns, int shared_dimension);
 
 struct MatmulImplementation {
     std::string name;

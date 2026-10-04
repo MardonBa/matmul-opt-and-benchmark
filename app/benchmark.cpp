@@ -139,19 +139,12 @@ void print_implementation_list() {
         std::cout << "  " << implementation.name << '\n';
 }
 
-double **make_matrix(int rows, int columns) {
-    double **matrix = new double *[rows];
-    for (int row = 0; row < rows; ++row) {
-        matrix[row] = new double[columns];
-        for (int column = 0; column < columns; ++column)
-            matrix[row][column] = static_cast<double>(std::rand()) / RAND_MAX;
+matmul::Matrix make_matrix(int rows, int columns) {
+    matmul::Matrix matrix(matmul::element_count(rows, columns));
+    for (double &value : matrix) {
+        value = static_cast<double>(std::rand()) / RAND_MAX;
     }
     return matrix;
-}
-
-void free_matrix(double **matrix, int rows) {
-    for (int row = 0; row < rows; ++row) delete[] matrix[row];
-    delete[] matrix;
 }
 
 struct AllocationStats { std::uint64_t count = 0; std::uint64_t bytes = 0; };
@@ -287,25 +280,24 @@ void add_metric_counters(benchmark::State &state, int n, const AllocationStats &
 
 void run_benchmark(benchmark::State &state, MatmulImplementation implementation) {
     const int n = static_cast<int>(state.range(0));
-    double **left = make_matrix(n, n);
-    double **right = make_matrix(n, n);
+    matmul::Matrix left = make_matrix(n, n);
+    matmul::Matrix right = make_matrix(n, n);
     AllocationStats allocations;
 #if defined(__linux__)
     PerfCounters perf_counters(config.metrics); PerfReadings perf; std::string perf_error;
-    if (!perf_counters.start(&perf_error)) { free_matrix(left, n); free_matrix(right, n); state.SkipWithError(perf_error.c_str()); return; }
+    if (!perf_counters.start(&perf_error)) { state.SkipWithError(perf_error.c_str()); return; }
 #elif defined(__APPLE__)
     PerfReadings perf_start, perf;
     std::string perf_error;
     const bool use_darwin_recount = wants_darwin_recount_metrics();
     if (use_darwin_recount && !read_darwin_thread_counts(&perf_start, &perf_error)) {
-        free_matrix(left, n); free_matrix(right, n); state.SkipWithError(perf_error.c_str()); return;
+        state.SkipWithError(perf_error.c_str()); return;
     }
 #endif
     for (auto _ : state) {
-        double **result;
+        matmul::Matrix result;
         { AllocationScope allocation_scope(&allocations); result = implementation.multiply(left, right, n, n, n); }
         benchmark::DoNotOptimize(result);
-        free_matrix(result, n);
     }
 #if defined(__linux__)
     perf = perf_counters.stop();
@@ -313,13 +305,12 @@ void run_benchmark(benchmark::State &state, MatmulImplementation implementation)
     if (use_darwin_recount) {
         PerfReadings perf_end;
         if (!read_darwin_thread_counts(&perf_end, &perf_error)) {
-            free_matrix(left, n); free_matrix(right, n); state.SkipWithError(perf_error.c_str()); return;
+            state.SkipWithError(perf_error.c_str()); return;
         }
         perf.cycles = perf_end.cycles - perf_start.cycles;
         perf.instructions = perf_end.instructions - perf_start.instructions;
     }
 #endif
-    free_matrix(left, n); free_matrix(right, n);
     add_metric_counters(state, n, allocations
 #if defined(__linux__) || defined(__APPLE__)
                         , perf
