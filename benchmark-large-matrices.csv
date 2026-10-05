@@ -1,0 +1,21 @@
+2026-10-04T17:51:56-04:00
+Running ./build/matmul_bench
+Run on (8 X 24 MHz CPU s)
+CPU Caches:
+  L1 Data 64 KiB
+  L1 Instruction 128 KiB
+  L2 Unified 4096 KiB (x8)
+Load Average: 9.25, 11.07, 18.36
+name,iterations,real_time,cpu_time,time_unit,bytes_per_second,items_per_second,label,error_occurred,error_message,"cycles","effective_bytes/s","flop/s","instructions"
+"matmul/ikj/N:2048",1,2.00646e+09,1.64067e+09,ns,,,,,,5.55959e+09,6.13548e+07,1.04712e+10,1.30238e+10
+"matmul/ikj/N:4096",1,2.24685e+10,1.52067e+10,ns,,,,,,4.60868e+10,2.64786e+07,9.03803e+09,1.04646e+11
+"matmul/ikj/N:8192",1,1.95093e+11,1.57793e+11,ns,,,,,,3.72188e+11,1.02071e+07,6.96805e+09,8.36081e+11
+"matmul/ikj/N:16384",1,1.63825e+12,1.35525e+12,ns,,,,,,3.51588e+12,4.7537e+06,6.49039e+09,6.90454e+12
+"matmul/cache aware/N:2048",1,2.22774e+09,1.9779e+09,ns,,,,,,5.6222e+09,5.08941e+07,8.68592e+09,1.45626e+10
+"matmul/cache aware/N:4096",1,1.43355e+10,1.37531e+10,ns,,,,,,4.33023e+10,2.92773e+07,9.99331e+09,1.16003e+11
+"matmul/cache aware/N:8192",1,1.37274e+11,1.25519e+11,ns,,,,,,3.83733e+11,1.28316e+07,8.7597e+09,9.29373e+11
+"matmul/cache aware/N:16384",1,1.61012e+12,1.34739e+12,ns,,,,,,3.37334e+12,4.78143e+06,6.52825e+09,7.73254e+12
+"matmul/double cache aware/N:2048",1,2.97646e+09,2.79465e+09,ns,,,,,,5.48468e+09,3.602e+07,6.14742e+09,1.45347e+10
+"matmul/double cache aware/N:4096",1,2.50399e+10,2.25456e+10,ns,,,,,,4.44667e+10,1.78595e+07,6.09603e+09,1.16438e+11
+"matmul/double cache aware/N:8192",1,2.14604e+11,1.98416e+11,ns,,,,,,3.85064e+11,8.11736e+06,5.54145e+09,9.3188e+11
+"matmul/double cache aware/N:16384",1,1.72081e+12,1.5692e+12,ns,,,,,,3.08946e+12,4.10555e+06,5.60545e+09,7.49219e+12

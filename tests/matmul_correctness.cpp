@@ -1,5 +1,5 @@
-#include "implementations/cache-aware/cache-aware-matmul.h"
-#include "implementations/double-cache-aware/double-cache-aware-matmul.h"
+#include "implementations/cache_aware/cache_aware_matmul.h"
+#include "implementations/double_cache_aware/double_cache_aware_matmul.h"
 #include "implementations/ikj/ikj_matmul.h"
 #include "implementations/jik/jik_matmul.h"
 #include "implementations/jki/jki_matmul.h"
@@ -49,8 +49,8 @@ int main() {
     const std::vector<std::pair<std::string, MatmulFunction>> implementations = {
         {"naive", naive_multiply}, {"ikj", ikj_multiply}, {"jik", jik_multiply},
         {"jki", jki_multiply}, {"kij", kij_multiply}, {"kji", kji_multiply},
-        {"cache-aware", cache_aware_multiply},
-        {"double-cache-aware", double_cache_aware_multiply},
+        {"cache aware", cache_aware_matmul},
+        {"double cache aware", double_cache_aware_matmul},
     };
 
     bool correct = true;

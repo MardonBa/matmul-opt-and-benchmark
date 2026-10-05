@@ -55,4 +55,10 @@ I'm opting to just get the cache sizes and hardcode the values in my function fo
 
 From the results, we can see that I have a 128KB L1 Data Cache and a 16MB L2 Cache, and 128-byte cache line size. The code calculates block/tile size for L1 and L2 cache.
 
-You may notice that there are 2 implementations for cache-aware tiling. That's because we'll be blocking into L1 cache only, and also L1 and L2 cache. Using both caches is even more efficient, because 
+You may notice that there are 2 implementations for cache-aware tiling. That's because we'll be blocking into L1 cache only, and also L1 and L2 cache. Using both caches is even more efficient, because we can load an overarching block onto the L2 cache, and then build our subsequent blocks from what's already in L2 into L1.
+
+![alt text](image.png)
+
+Above is the optimal loop reordering implementation against L1 optimized and L1/L2 optimized implementatios of matmul. An interesting thing I noticed is that we don't see gains until around 2048x2048 dimension matrices, and throughput is actually much better for the simple looping implementation. My guess is that there's a good bit of overhead associated with getting everythig into the cache and with having this many for loops in general, so the payoffs don't come until we get to larger matrices.
+
+We can also note that for smaller matrix sizes, all of the matrices fit onto the L1 cache, so all we're doing with tiling is introducing more for loops that only ever run one iteration, so they might as well not be there! Some optimizations only really work at scale. And speaking of scale, I ran the same tests on some much larger matrices:

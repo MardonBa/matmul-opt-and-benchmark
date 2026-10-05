@@ -77,19 +77,23 @@ Write the same benchmark run to CSV while retaining the console table:
 `--csv=PATH` writes Google Benchmark's complete CSV report to `PATH`; use a
 different filename for each comparison run so results are not overwritten.
 
-## Visualizing growth
+## Visualizing benchmark metrics
 
-Generate an SVG report with CPU-time growth, throughput by matrix size, and
-speedup relative to `naive`. The plotter uses only Python's standard library.
+Generate a CSV for the implementations and sizes you want to compare, then
+render CPU time, cycles, effective bytes/s, FLOP/s, and instructions as a
+five-panel SVG. The plotter uses only Python's standard library.
 
 ```sh
-python3 plot_benchmarks.py benchmark-results.csv --output benchmark-growth.svg
+./build/matmul_bench \
+  --implementations='ikj,cache aware,double cache aware' \
+  --metrics=cycles,instructions,effective-bandwidth,flops \
+  --benchmark_filter='.*N:(512|1024|2048|4096).*' \
+  --csv=benchmark-metrics.csv
+python3 plot_benchmarks.py benchmark-metrics.csv --output benchmark-metrics.svg
 ```
 
-The CPU-time chart uses log axes and adds a fitted `N^p` exponent to each
-implementation's legend. For ordinary matrix multiplication, `p` should be
-near 3; a materially smaller value can indicate that the implementation is not
-doing equivalent work.
+All panels use logarithmic axes and preserve each implementation's color across
+the report.
 
 `flop/s` is calculated as `2 * N^3`; effective bandwidth is the logical
 traffic for reading both inputs and writing the output (`3 * N^2 * sizeof(double)`),
@@ -167,14 +171,14 @@ selected with `--implementations=blocked` or compared directly with
 - `app/` contains the benchmark executable and implementation registry.
 - `implementations/<name>/` contains one matrix multiplication implementation
   and its header. Current folders are `naive`, `ikj`, `jik`, `jki`, `kij`, and
-  `kji`, plus `cache-aware` and `double-cache-aware`.
+  `kji`, plus `cache_aware` and `double_cache_aware`.
 - `tests/` verifies every implementation against a rectangular reference case.
 
 ## Matrix representation
 
-All implementations accept and return `matmul::Matrix`, an alias for a flat
-`std::vector<double>` in row-major order. For `A(rows × shared)` and
-`B(shared × columns)`, element `(row, column)` is stored at
+All registered benchmark implementations accept and return `matmul::Matrix`,
+an alias for a flat `std::vector<double>` in row-major order. For
+`A(rows × shared)` and `B(shared × columns)`, element `(row, column)` is stored at
 `row * columns + column`; the result contains exactly `rows * columns`
 elements. `implementations/matrix.h` centralizes this contract and validates
 the supplied storage dimensions.

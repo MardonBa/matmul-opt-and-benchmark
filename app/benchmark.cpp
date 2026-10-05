@@ -333,7 +333,8 @@ void register_benchmarks() {
         if (!config.all_implementations && !config.implementations.empty() &&
             !config.implementations.count(implementation.name)) continue;
         benchmark::RegisterBenchmark(("matmul/" + implementation.name).c_str(), [implementation](benchmark::State &state) { run_benchmark(state, implementation); })
-            ->Arg(32)->Arg(64)->Arg(128)->Arg(256)->Arg(512)->Arg(1024)->Arg(2048)->ArgName("N");
+            ->Arg(32)->Arg(64)->Arg(128)->Arg(256)->Arg(512)->Arg(1024)->Arg(2048)->Arg(4096)
+            ->Arg(8192)->Arg(16384)->ArgName("N");
     }
 }
 
